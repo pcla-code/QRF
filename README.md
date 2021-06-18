@@ -14,3 +14,12 @@ Download | APK Password | App Password | Version | Info | Date
 [QRF-04-30-2018.apk](https://github.com/pcla-code/QRF/blob/main/QRF-04-30-2018.apk) | spongebob | ryan | 0.9.7 | Android installable package | 04/30/2018
 [QRF-04-29-2018.apk](https://github.com/pcla-code/QRF/blob/main/QRF-04-29-2018.apk) | spongebob | ryan | 0.9.6 | Android installable package | 04/29/2018
 [QRF-04-26-2018.apk](https://github.com/pcla-code/QRF/blob/main/QRF-04-26-2018.apk) | spongebob | ryan | 0.9.5 | Android installable package | 04/26/2018
+
+**Graphics for Project QRF**
+
+Name | Preview | Download Link
+--- | --- | ---
+Small Logo | ![Small Logo](https://github.com/pcla-code/QRF/blob/main/icon-small.png) | [icon-small.png](https://github.com/pcla-code/QRF/raw/main/icon-small.png)
+Medium Logo | ![Medium Logo](https://github.com/pcla-code/QRF/blob/main/icon-medium.png) | [icon-medium.png](https://github.com/pcla-code/QRF/raw/main/icon-medium.png)
+Large Logo | ![Large Logo](https://github.com/pcla-code/QRF/blob/main/icon-large.png) | [icon-large.png](https://github.com/pcla-code/QRF/raw/main/icon-large.png)
+Prototype Login Screen | ![Login Screen](https://github.com/pcla-code/QRF/blob/main/screen-login.png) | [screen-login.png](https://github.com/pcla-code/QRF/raw/main/screen-login.png)
