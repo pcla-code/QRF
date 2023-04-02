@@ -1,0 +1,236 @@
+package edu.upenn.qrf.comm;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+
+import javax.xml.transform.TransformerException;
+
+import org.jdom2.Document;
+import org.jdom2.Element;
+
+//import edu.upenn.qrf.QRFLinkData;
+import edu.upenn.qrf.QRFUser;
+import edu.upenn.qrf.tools.QRFXMLTools;
+
+/**
+ * @author Martin van Velsen <vvelsen@knossys.com>
+ */
+public class QRFAppTester extends QRFCommBase {
+  
+  ArrayList<QRFUser> userList=null;
+        
+  /**
+   * 
+   */
+  public void parseXML (Document document) {
+    debug ("(client) parseXML ()");  
+    
+    try {
+			debug(QRFXMLTools.prettyPrint(document));
+		} catch (TransformerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    
+    Boolean processed=false;
+    
+    Element node = document.getRootElement();
+
+    if (node!=null) {
+      //String foundSession = node.getChildText ("session");
+      String foundAction = node.getChildText ("action");
+      String foundYesNo = node.getChildText ("string");
+      String foundAdvice = node.getChildText ("advice");
+      
+      // Message detectors 
+      Element foundList = node.getChild ("List");
+      Element was = node.getChild ("was");
+      Element is = node.getChild ("is");
+      
+      //>-----------------------------------------------------------------------------
+      
+      if (foundAdvice!=null) {
+        debug ("Received a warning from the broker: " + foundAdvice);
+      	processed=true;
+      }      
+      
+      //>-----------------------------------------------------------------------------
+      
+      if (foundYesNo!=null) {
+      	if (foundYesNo.equalsIgnoreCase("yes")==true) {
+      		debug ("The server indicated that the class we want to register for exists. Navigating to student list ...");
+      	}
+      	processed=true;
+      }
+      
+      //>-----------------------------------------------------------------------------      
+      
+      if (foundAction!=null) {
+         
+        if (foundAction.equalsIgnoreCase("broadcast")==true ) {
+          //debug ("No need to do anything, everyone should already have received this message");
+          processed=true;
+        }
+          
+        if (foundAction.equalsIgnoreCase("pong")==true ) {
+          debug ("Success! Pong received!");
+          processed=true;
+        } 
+      }   
+
+      //>-----------------------------------------------------------------------------      
+      
+      if (foundList!=null) {
+        debug ("Processing user list ...");
+        userList=messageParser.parseUserList (foundList);
+        displayUserList ();
+        processed=true;
+      }
+      
+      //>----------------------------------------------------------------------------- 
+
+      if ((was!=null) && (is!=null)) {
+        debug ("Received affect update, processing ...");
+        
+        String studentName = node.getChildText ("name");
+        String studentID = node.getChildText ("ID");
+        String studentTime = node.getChildText ("time");
+        String studentOccurrenceType = node.getChildText ("occurrence_type");
+        String studentLocation = node.getChildText ("Location");
+        
+        debug ("Displaying user info: " + studentName + ", " + studentID + ", " + studentTime + ", " + studentOccurrenceType + ", " + studentLocation);
+        
+        processed=true;
+      }
+      
+      //>-----------------------------------------------------------------------------      
+      
+    } else {
+      debug ("Error: no msg element found!");
+    }
+    
+    if (processed==false) {
+      debug ("Error: no appropriate action found in client message");
+    }  
+  }  
+        
+  /**
+   * 
+   */
+  public void consoleQA () {
+    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+    debug ("Ready for input: ");
+          
+    String inputCommand="";
+      
+    while (inputCommand.equalsIgnoreCase("quit")==false) {
+      try {
+        inputCommand = br.readLine();
+      } catch (IOException e) {
+        e.printStackTrace();
+        return;
+      }
+      
+      String commands []=inputCommand.split("\\s+");
+      
+      if (commands.length>0) {
+      	
+        /*
+         * Send a message to the broker with the topic set to our ID. The broker should
+         * then reply to us also using that topic. This tests to see if we can use the
+         * topic mechanism to address specific clients.
+         */
+        if (commands [0].equalsIgnoreCase("ping")==true) {
+          publishXML (messageGenerator.createActionMessage("ping"));
+        }
+        
+        /*
+         * Send a message to the broker with the topic set to our 'broadast'. Every client
+         * including the broker should get this message.
+         */
+        if (commands [0].equalsIgnoreCase("broadcast")==true) {
+          broadcast (messageGenerator.createActionMessage("broadcast"));
+        }
+        
+        /*
+         * Send this to simulate the user entering a class name in the
+         * interface and clicking 'OK' to register to start coding that
+         * class. (the server will check if the class exists) 
+         */
+        if (commands [0].equalsIgnoreCase("register")==true) {
+        	debug ("Processing register command");
+        	if (commands.length==1) {
+            publishXML (messageGenerator.createClassnameMessage("testuser"));
+        	} else {
+        		publishXML (messageGenerator.createClassnameMessage(commands [1]));
+        	}
+        }        
+        
+        /*
+         * Sent when the user clicks 'OK' in the student list to transition to
+         * the student input screen
+         */
+        if (commands [0].equalsIgnoreCase("ready")==true) {
+          //broadcast (messageGenerator.createActionMessage("ready"));
+          publishXML (messageGenerator.createActionMessage("ready"));
+        }
+
+        /*
+         * Accept the suggestion from the server for the current user 
+         */
+        if (commands [0].equalsIgnoreCase("accept")==true) {
+          publishXML (messageGenerator.createAcceptMessage());
+        }
+           
+        /*
+         * Reject the suggestion from the server for the current user 
+         * (and log a reason as provided by the user/coder)
+         */
+        if (commands [0].equalsIgnoreCase("reject")==true) {
+          publishXML (messageGenerator.createRejectedMessage());
+        }
+      
+        /*
+         * Wrap up the session. There is no explicit message associated
+         * with this other than that the logs are transmitted to the server
+         */
+        if (commands [0].equalsIgnoreCase("end")==true) {
+          publishXML (messageGenerator.sendLogs("testuser"));
+        }
+      } else {
+      	debug ("Can't process command, nothing entered");
+      }
+    }
+  }
+
+  /**
+  *
+  */
+  public void displayUserList () {
+     debug ("displayUserList ()");
+
+     debug ("User list:");
+     for (int i=0;i<userList.size ();i++) {
+       QRFUser aUser=userList.get (i);
+
+       debug (i + ", " + aUser.id + ", " + aUser.name);
+     }
+  }
+
+  /**
+   * 
+   * @param argv
+   * @throws Exception
+   */
+  public static void main(String[] argv) {
+    System.out.println("Starting QRF Test Client ...");
+ 
+    QRFAppTester logSender=new QRFAppTester ();
+    logSender.processCommandline (argv);
+    logSender.clientInit();
+    logSender.consoleQA();
+    logSender.shutdown ();
+  }
+}

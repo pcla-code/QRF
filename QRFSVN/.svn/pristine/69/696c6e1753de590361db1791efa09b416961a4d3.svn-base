@@ -1,0 +1,19 @@
+The app is good, but let's get that end button away from my big fat right thumb! Especially when I'm trying to 
+hit stop-recording.  I know we have some constraints because of the text box, but let's try to move that 
+like we did with HART. 
+
+It might also be nice to be able to exit out of the "skip student" menu, because hitting the back button 
+seems to induce crashes
+
+Also, I walked across the hall yesterday, not knowing this would disconnect me from our server.  
+Fortunately, Naveed panicked and checked, because it had disconnected.  Some sort of warning system on 
+that might be good, though I realize this is probably a less trivial change than the other things.
+
+I might have other ideas once we've actually been able to use it with a few more students, and again 
+if we get ever get the patterns pushed automatically through the phone.
+
+One quick thing--for the dummy variables that are there now.  Maybe something neutral?  Right now they say 
+"boredom" and "confusion."  Since I'm kinda holding in students' faces to get the recording to work, it might 
+be good do a quick change on this?  And in the future, we might want to think about abreviations that obscure 
+that a bit.  Depending on the layout of a classroom we could even be worrying about nosy neighbors staring 
+at the phone, which then becomes a different set of issues.

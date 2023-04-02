@@ -1,0 +1,27 @@
+package edu.upenn.recorder;
+
+import java.io.File;
+import java.util.ArrayList;
+
+import com.rabbitmq.client.Consumer;
+
+import edu.upenn.qrf.QRFLinkData;
+import edu.upenn.qrf.QRFUser;
+
+/** 
+ * @author vvelsen
+ */
+public class QRFAppLinkData extends QRFLinkData {
+  
+  public static String QUEUE_NAME = "QRF"; 
+  public Boolean queueDeclared = false;  
+  public static Consumer consumer = null;
+  
+  public static QRFFileManager logManager = null;    
+  
+  public static File direct = null;
+  
+  public static String observerName="Unassigned";
+  
+  public static ArrayList<QRFUser> userList=null;
+}

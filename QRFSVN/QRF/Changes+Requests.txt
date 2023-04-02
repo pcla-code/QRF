@@ -1,0 +1,46 @@
+The app is good, but let's get that end button away from my big fat right thumb! Especially when I'm trying to 
+hit stop-recording.  I know we have some constraints because of the text box, but let's try to move that 
+like we did with HART. 
+
+It might also be nice to be able to exit out of the "skip student" menu, because hitting the back button 
+seems to induce crashes
+
+Also, I walked across the hall yesterday, not knowing this would disconnect me from our server.  
+Fortunately, Naveed panicked and checked, because it had disconnected.  Some sort of warning system on 
+that might be good, though I realize this is probably a less trivial change than the other things.
+
+I might have other ideas once we've actually been able to use it with a few more students, and again 
+if we get ever get the patterns pushed automatically through the phone.
+
+One quick thing--for the dummy variables that are there now.  Maybe something neutral?  Right now they say 
+"boredom" and "confusion."  Since I'm kinda holding in students' faces to get the recording to work, it might 
+be good do a quick change on this?  And in the future, we might want to think about abreviations that obscure 
+that a bit.  Depending on the layout of a classroom we could even be worrying about nosy neighbors staring 
+at the phone, which then becomes a different set of issues.
+
+---
+
+- How about this as a response to each message that acknowledges it:
+ 
+<ack part="1" of="34"><name>extra_credit.xml</name></ack>
+
+x Also, I was wondering if there is a way to add an unregister message for the devices. 
+Basically, a message that would be sent whenever you press the button end. It is to 
+notify the server that this particular device should not be receiving messages and to 
+update its state as well.
+
+x Also, I was wondering if we can set the default values for textboxes in the initial 
+screens to be Host: 192.168.1.100, username: betty, password: betty
+
+x Can we have the view clear out the data from previous messages if the next message turns out 
+to be the EMPTY_MESSAGE? Usually, the view deactivates the textarea but information from previous message 
+persists on the screen, it would probably be less confusing for the researcher to just have those fields 
+clear out exactly the way it looked when you first start the app.
+
+x We have also noticed that whenever we end the session and restart the app, that the reject list does not 
+clear out, which causes the new list sent by the server to be appended to the current one, not replace it. 
+It would be great, if that can be reset whenever the user presses the end button.
+
+x Actually, it would be great if you send the unregister message both if the user clicks ‘Upload and Finish’ 
+or ‘Restart App’ since the ‘Restart App’ option requires that the devices sends an init message again, which 
+triggers the warning that we’re trying to initialize the client while it is in an active state.

@@ -1,0 +1,1 @@
+clear ; gem build qrfrubybroker.gemspec

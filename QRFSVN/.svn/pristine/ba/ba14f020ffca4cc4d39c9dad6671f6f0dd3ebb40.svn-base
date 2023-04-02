@@ -1,0 +1,505 @@
+package edu.upenn.recorder;
+
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.TimeoutException;
+
+import javax.xml.transform.TransformerException;
+
+import org.jdom2.Document;
+import org.jdom2.Element;
+
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.os.Build;
+import android.os.Bundle;
+import edu.upenn.qrf.QRFMessageClient;
+import edu.upenn.qrf.QRFMessageGenerator;
+import edu.upenn.qrf.QRFMessageParser;
+import edu.upenn.qrf.QRFUser;
+import edu.upenn.qrf.tools.QRFXMLTools;
+
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+//import java.util.Date;
+
+/*
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
+*/
+
+/**
+ * 
+ */
+public class QRFActivityBase extends Activity implements QRFMessageClient
+{		  
+	protected class CachedEntry {
+		public String behavior="nop";
+		public String affect="nop";
+		public String intervention="nop";
+		public String notes="";
+		public String studentID="";
+		public Integer studentIndex=1;
+	}
+	
+	protected QRFMessageGenerator messageGenerator = new QRFMessageGenerator();
+	
+	protected String postHost ="";
+	
+	protected StringBuffer notes=new StringBuffer ();
+	
+	protected int cacheIndex=0;
+	protected ArrayList<CachedEntry> entries=new ArrayList<CachedEntry> ();	
+		
+	private Boolean useBroker = true; 
+
+  private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
+  	
+	/**
+	 * 
+	 */
+	public void onCreate(Bundle savedInstanceState) 
+	{		
+		super.onCreate(savedInstanceState);
+		
+		QRFBase.currentActivity=this;
+		QRFAppLinkData.currentListener=this;
+	}
+	
+  /**
+   *
+   */
+  protected void generateSession () {
+    UUID rawSession = UUID.randomUUID();
+    QRFAppLinkData.session = String.valueOf(rawSession);
+  }
+
+  /**
+   * 
+   * @param aTest
+   * @param aSelection
+   * @return
+   */
+  protected int getIndexFromList (List<String>aTest,String aSelection)
+  {
+    for (int i=0;i<aTest.size();i++)
+    {
+      if (aTest.get(i).equals(aSelection)==true)
+      {
+        return (i);
+      }
+    }
+    
+    return (-1);
+  }  
+
+	/**
+	 * 
+	 */
+  /*
+	public void onPause () {
+	  debug ("onPause ()");
+	}
+	*/
+	
+	/**
+	 * 
+	 */
+	/*
+  public void onResume () {
+    debug ("onResume ()");
+  }
+  */
+  
+  /**
+   * 
+   */
+  /*
+  public void onStop () {
+    debug ("onStop ()");
+  } 
+  */ 
+	
+	/**
+	 * 
+	 */
+	protected void debug (String aMessage)
+	{
+		QRFBase.extDebug(aMessage);
+	}	
+	
+	/**
+	 * 
+	 */
+	protected void error (String aMessage)
+	{
+		QRFBase.extError (aMessage);
+	}
+	
+	/**
+	 * 
+	 * @param aURL
+	 */
+	protected void setPostHost (String aURL) {
+	  postHost=aURL;
+	}
+	
+	/**
+	 * 
+	 * @param aMessage
+	 */
+	protected String send (String aMessage) {
+    debug ("send ()");
+
+    logSAI ("APP","SEND",aMessage,"");
+
+	  if (useBroker==true) {
+	    return (sendToBroker (aMessage));
+	  }   
+
+	  return (executePost (aMessage));
+	}
+	
+	/** 
+	 * @param targetURL
+	 * @param urlParameters
+	 * @return
+	 */
+	protected String executePost(String urlParameters) 
+	{
+		HttpURLConnection connection = null;
+
+		try 
+		{
+		    //Create connection
+		    URL url = new URL(this.postHost);
+		    connection = (HttpURLConnection) url.openConnection();
+		    connection.setRequestMethod("POST");
+		    connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+		    connection.setRequestProperty("Content-Length", Integer.toString(urlParameters.getBytes().length));
+		    connection.setRequestProperty("Content-Language", "en-US");  
+
+		    connection.setUseCaches(false);
+		    connection.setDoOutput(true);
+
+		    //Send request
+		    DataOutputStream wr = new DataOutputStream (connection.getOutputStream());
+		    wr.writeBytes(urlParameters);
+		    wr.close();
+
+		    debug ("Data sent, waiting for input ...");
+		    		    
+		    //Get Response  
+		    InputStream is = connection.getInputStream();
+		    BufferedReader rd = new BufferedReader(new InputStreamReader(is));
+		    StringBuilder response = new StringBuilder(); // or StringBuffer if Java version 5+
+		    String line;
+		    
+		    while ((line = rd.readLine()) != null) 
+		    {		    	
+		      response.append(line);
+		    }
+		    
+		    rd.close();
+		    
+		    debug ("We have data: " + response.toString());
+		    
+		    return response.toString();
+		}
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		    return null;
+		}
+		finally 
+		{
+		    if (connection != null) 
+		    {
+		      connection.disconnect();
+		    }
+		}
+	}
+	  
+  /**
+   * 
+   */
+  protected void shutdownBrokerLink () {
+    /*
+    if (QRFAppLinkData.channel!=null) {
+      try {
+        QRFAppLinkData.channel.close();
+      } catch (IOException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      } catch (TimeoutException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
+    
+    if (QRFAppLinkData.conn!=null) {
+      try {
+        QRFAppLinkData.conn.close();
+      } catch (IOException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    } 
+    */
+    
+    QRFAppLinkData.commManager.shutdown ();
+  }  
+  
+  /**
+   * 
+   * @param aMessage
+   */
+  protected String sendToBroker (String aMessage) {
+    debug ("sendToBroker ()");
+    
+    //QRFAppLinkData.commManager.publish ("QRF",aMessage);
+    QRFAppLinkData.commManager.publishXML (aMessage);
+        
+    return ("OK");
+  }
+
+  /**
+   * 
+   * https://medium.com/@yossisegev/understanding-activity-runonuithread-e102d388fe93
+   * https://stackoverflow.com/questions/11140285/how-do-we-use-runonuithread-in-android
+   */
+  public void parseXML(QRFMessageParser msg) {
+    debug ("parseXML ()");
+    
+    final QRFMessageParser incomingMsg = msg;
+    
+    debug ("We have a proper message, attempting to push it into the UI thread ...");
+    
+    runOnUiThread(new Runnable() {
+        @Override
+        public void run() {
+          debug ("run ()");
+          parseXMLInUIThread (incomingMsg);
+        }
+    });
+  }
+  
+  /**
+   * 
+   */
+  public void parseXMLInUIThread(QRFMessageParser aMessage) {
+    debug ("parseXMLInUIThread ()");
+    
+    logSAI ("SERVER","SEND",aMessage.getOriginal (),"");
+
+    Document document=aMessage.getDocument ();
+    
+    try {
+      debug(QRFXMLTools.prettyPrint(document));
+    } catch (TransformerException e) {
+      // TODO Auto-generated catch block
+      //e.printStackTrace();
+    }
+    
+    Boolean processed=false;
+    
+    Element node = document.getRootElement();
+
+    if (node!=null) {
+      //String foundSession = node.getChildText ("session");
+      String foundAction = node.getChildText ("action");
+      String foundYesNo = node.getChildText ("string");
+      String foundAdvice = node.getChildText ("advice");
+      
+      // Message detectors 
+      Element foundList = node.getChild ("List");
+      Element was = node.getChild ("was");
+      Element is = node.getChild ("is");
+      
+      //>-----------------------------------------------------------------------------
+      
+      if (foundAdvice!=null) {
+        debug ("Received a warning from the broker: " + foundAdvice);
+        processed=true;
+      }      
+      
+      //>-----------------------------------------------------------------------------
+      
+      if (foundYesNo!=null) {
+        if (foundYesNo.equalsIgnoreCase("yes")==true) {
+          debug ("The server indicated that the class we want to register for exists. Navigating to student list ...");
+        }
+        processed=true;
+      }
+      
+      //>-----------------------------------------------------------------------------      
+      
+      if (foundAction!=null) {
+         
+        if (foundAction.equalsIgnoreCase("broadcast")==true ) {
+          //debug ("No need to do anything, everyone should already have received this message");
+          processed=true;
+        }
+          
+        if (foundAction.equalsIgnoreCase("pong")==true ) {
+          debug ("Success! Pong received!");
+          processed=true;
+        } 
+      }   
+      
+      //>-----------------------------------------------------------------------------
+      
+      if (foundAdvice!=null) {
+        debug ("Received a warning from the broker: " + foundAdvice);
+        processed=true;
+      }       
+
+      //>-----------------------------------------------------------------------------      
+      
+      if (foundList!=null) {
+        debug ("Processing user list ...");
+        //ArrayList<QRFUser> userList=aMessage.parseUserList (foundList);
+        QRFAppLinkData.userList=aMessage.parseUserList (foundList);
+        displayUserList ();
+        processed=true;
+      }
+      
+      //>----------------------------------------------------------------------------- 
+
+      if ((was!=null) && (is!=null)) {
+        debug ("Received affect update, processing ...");
+        
+        QRFAppLinkData.currentInfo=new QRFStudentInfo ();
+        QRFAppLinkData.currentInfo.studentName = node.getChildText ("name");
+        QRFAppLinkData.currentInfo.studentID = node.getChildText ("ID");
+        QRFAppLinkData.currentInfo.studentTime = node.getChildText ("time_when_occurred");
+        QRFAppLinkData.currentInfo.studentOccurrenceType = node.getChildText ("occurrence_type");
+        QRFAppLinkData.currentInfo.studentLocation = node.getChildText ("Location");
+        QRFAppLinkData.currentInfo.observation = QRFAppLinkData.observationIndex;
+        
+        QRFAppLinkData.observationIndex++;
+        
+        debug ("Displaying user info (for observation: " + QRFAppLinkData.observationIndex + "): " + QRFAppLinkData.currentInfo.studentName + ", " + QRFAppLinkData.currentInfo.studentID + ", " + QRFAppLinkData.currentInfo.studentTime + ", " + QRFAppLinkData.currentInfo.studentOccurrenceType + ", " + QRFAppLinkData.currentInfo.studentLocation);
+        
+        processObservation ();
+        
+        processed=true;
+      }
+      
+      //>-----------------------------------------------------------------------------      
+      
+    } else {
+      debug ("Error: no msg element found!");
+    }
+    
+    if (processed==false) {
+      debug ("Error: no appropriate action found in client message");
+    }
+  }    
+  
+  /**
+   * 
+   */
+  protected void processObservation() {
+    debug ("processObservation ()");
+    
+    debug ("Error: this should be overloaded and processed in a child class");
+  }
+
+  /**
+   * 
+   */
+  protected void displayUserList() {
+    debug ("displayUserList ()");
+    
+    debug ("WRONG METHOD, OVERRIDE THIS!");
+  }
+
+  /**
+  *
+  */
+  protected void logHeader () {
+    debug ("logHeader ()");
+
+    if (QRFAppLinkData.logManager==null) {
+      debug ("Internal error: no log manager available!");
+      return;
+    }
+
+    QRFAppLinkData.logManager.writeLine ("TimestampRaw,Timestamp,Selection,Action,Input,Supplement");
+  }  
+
+  /**
+  *
+  */
+  protected void logSAI (String aSelection, String anAction, String anInput, String aSupplement) {
+    debug ("logSAI ()");
+
+    if (QRFAppLinkData.logManager==null) {
+      debug ("Internal error: no log manager available!");
+      return;
+    }
+
+    Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+    //System.out.println(timestamp);
+
+    QRFAppLinkData.logManager.writeLine (timestamp +","+sdf.format(timestamp)+","+aSelection+","+anAction+","+anInput+","+aSupplement.replace("\n", "").replace("\r", ""));
+  }
+
+  /**
+   * 
+   */
+  @Override
+  public void ready() {
+    debug ("ready ()");
+    
+  }
+  
+  /**
+   * 
+   */
+  public void showAlert (String aMessage) {
+    AlertDialog.Builder builder;
+    /*
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        builder = new AlertDialog.Builder(context, android.R.style.Theme_Material_Dialog_Alert);
+    } else {
+        builder = new AlertDialog.Builder(context);
+    }
+    */
+    builder = new AlertDialog.Builder(this.getApplicationContext());
+    builder.setTitle("QRF Warning")
+    .setMessage(aMessage)
+    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+        public void onClick(DialogInterface dialog, int which) { 
+            // continue with delete
+        }
+     })
+    .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+        public void onClick(DialogInterface dialog, int which) { 
+            // do nothing
+        }
+     })
+    .setIcon(android.R.drawable.ic_dialog_alert)
+    .show();    
+  }
+
+  @Override
+  public Boolean processData(QRFMessageParser aMessage) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+}

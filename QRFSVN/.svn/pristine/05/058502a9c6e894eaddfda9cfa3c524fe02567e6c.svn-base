@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="javadoc">
+    <target name="javadoc">
+        <javadoc access="public" author="true" classpath="libs/android-support-v4.jar" destdir="docs/javadoc" doctitle="HART Source Documentation" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" packagenames="wpi.rsb.HART,Networking.util,Networking.ntp" source="1.6" sourcepath="gen;src" splitindex="true" use="true" version="true">
+            <link href="http://developer.android.com/reference/"/>
+        </javadoc>
+    </target>
+</project>
